@@ -35,7 +35,7 @@ def save_json(json_obj, filename):
         json.dump(json_obj, f, separators=(',\n', ':\n'), cls=MyEncoder)
 
 def load_numpy_obj(filename):
-    return np.load(filename)[()]
+    return np.load(filename, encoding='bytes')[()]
 
 def save_numpy_obj(obj, filename):
     return np.save(filename, np.array(obj, dtype=np.object))

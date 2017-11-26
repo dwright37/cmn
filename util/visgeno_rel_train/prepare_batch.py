@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
+import os
 import skimage.io
 import skimage.transform
 import numpy as np
@@ -28,6 +29,7 @@ def load_one_batch(iminfo, im_mean, min_size, max_size, vocab_dict, T,
     # annotate regions
     bboxes = np.array(iminfo['bboxes'], np.float32)
     bboxes = bboxes[:max_bbox_num]
+    bbox_orig = bboxes[:max_bbox_num]
     if len(bboxes) == 0:
         raise IOError('no object annotations for image ' + im_path)
     bboxes *= scale
@@ -94,6 +96,8 @@ def load_one_batch(iminfo, im_mean, min_size, max_size, vocab_dict, T,
                label_batch=label_batch, questions=questions,
                obj1_component_idx=obj1_component_idx,
                obj2_component_idx=obj2_component_idx,
-               rel_component_idx=rel_component_idx)
+               rel_component_idx=rel_component_idx,
+               im_path=os.path.abspath(im_path),
+               bbox_orig=bbox_orig)
 
     return batch

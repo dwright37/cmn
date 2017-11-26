@@ -63,6 +63,6 @@ def load_one_batch(iminfo, im_mean, min_size, max_size, vocab_dict, T):
     batch=dict(text_seq_batch=text_seq_batch, im_batch=im_batch,
                bbox_batch=bbox_batch, spatial_batch=spatial_batch,
                label_batch=label_batch, coco_ann_ids=coco_ann_ids,
-               questions=questions, coco_bboxes=coco_bboxes)
+               questions=questions, coco_bboxes=coco_bboxes, im_path=im_path)
 
     return batch

@@ -37,7 +37,7 @@ def visual7w_attbilstm_net(input_batch, bbox_batch1, spatial_batch1,
     spatial_batch2 = tf.tile(spatial_batch2, to_T([N_batch, 1, 1]))
 
     # Extract representation using attention
-    lang_obj1, lang_obj2, lang_relation = lstm_net.attbilstm(
+    lang_obj1, lang_obj2, lang_relation, probs_obj1, probs_obj2, probs_rel = lstm_net.attbilstm(
         expr_obj, "lstm", num_vocab=num_vocab, embed_dim=embed_dim,
         lstm_dim=lstm_dim, apply_dropout=lstm_dropout)
 

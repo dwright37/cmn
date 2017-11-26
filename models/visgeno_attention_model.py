@@ -18,7 +18,7 @@ def visgeno_attbilstm_net(input_batch, bbox_batch, spatial_batch, expr_obj,
     D_vis = vis_feat.get_shape().as_list()[-1]
 
     # Extract representation using attention
-    lang_obj1, lang_obj2, lang_relation = lstm_net.attbilstm(
+    lang_obj1, lang_obj2, lang_relation, probs_obj1, probs_obj2, probs_rel = lstm_net.attbilstm(
         expr_obj, "lstm", num_vocab=num_vocab, embed_dim=embed_dim,
         lstm_dim=lstm_dim, apply_dropout=lstm_dropout)
 
@@ -39,4 +39,4 @@ def visgeno_attbilstm_net(input_batch, bbox_batch, spatial_batch, expr_obj,
         rescale_scores=True)
     tf.add_to_collection("s_pair", scores_rel)
 
-    return scores_rel
+    return scores_rel, probs_obj1, probs_obj2, probs_rel

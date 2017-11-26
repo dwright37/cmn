@@ -45,7 +45,8 @@ im_mean = refgoog_attention_model.fastrcnn_vgg_net.channel_mean
 
 # Snapshot Params
 snapshot = 10000
-snapshot_file = './exp-refgoog/tfmodel/refgoog_attbilstm_iter_%d.tfmodel'
+snapshot_file = './downloaded_models/refgoog_attbilstm_kl_loss_iter_%d.tfmodel'
+initial_snapshot = './downloaded_models/refgoog_attbilstm_iter_150000.tfmodel'
 
 # Log params
 log_interval = 20
@@ -63,7 +64,7 @@ spatial_batch = tf.placeholder(tf.float32, [None, 5])
 label_batch = tf.placeholder(tf.int32, [None])
 
 # Outputs
-scores = refgoog_attention_model.refgoog_attbilstm_net(im_batch, bbox_batch,
+scores, probs_obj1, probs_rel, probs_obj2 = refgoog_attention_model.refgoog_attbilstm_net(im_batch, bbox_batch,
     spatial_batch, text_seq_batch, num_vocab, embed_dim, lstm_dim,
     vgg_dropout=vgg_dropout, lstm_dropout=lstm_dropout)
 
@@ -106,10 +107,13 @@ print('Done.')
 # Loss function and accuracy
 ################################################################################
 
+#DWRIGHT: introduce KL divergence loss for relation and object
+kl_loss = tf.reduce_sum(probs_rel + tf.log(probs_rel / probs_obj2), axis=1)#tf.contrib.distributions.kl(probs_rel, probs_obj2)
+
 cls_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
     logits=scores, labels=label_batch))
 reg_loss = loss.l2_regularization_loss(reg_var_list, weight_decay)
-total_loss = cls_loss + reg_loss
+total_loss = cls_loss + reg_loss - kl_loss
 
 ################################################################################
 # Solver
@@ -180,6 +184,7 @@ sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': 0}))
 # Run Initialization operations
 sess.run(tf.global_variables_initializer())
 sess.run(tf.group(*init_ops))
+#snapshot_saver.restore(sess, initial_snapshot)
 
 ################################################################################
 # Optimization loop
@@ -244,3 +249,4 @@ for n_iter in range(initial_iter, max_iter):
 
 print('Optimization done.')
 sess.close()
+

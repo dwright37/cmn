@@ -36,12 +36,14 @@ def attbilstm(text_seq_batch, name, num_vocab, embed_dim, lstm_dim,
         # 1. Encode the sentence into a vector representation, using the final
         # hidden states in a two-layer bidirectional LSTM network
         seq_length = tf.ones(to_T([N]), dtype=tf.int32)*T
-        lstm_cell = tf.contrib.rnn.BasicLSTMCell(lstm_dim, state_is_tuple=True)
-        outputs1_raw, _ = tf.nn.bidirectional_dynamic_rnn(lstm_cell, lstm_cell,
+        lstm_cells = []
+        for i in range(2):
+            lstm_cells.append(tf.contrib.rnn.BasicLSTMCell(lstm_dim, state_is_tuple=True))
+        outputs1_raw, _ = tf.nn.bidirectional_dynamic_rnn(lstm_cells[0], lstm_cells[0],
             embedded_seq, seq_length, dtype=tf.float32, time_major=True,
             scope="bidirectional_lstm1")
         outputs1 = tf.concat(outputs1_raw, axis=2)
-        outputs2_raw, _ = tf.nn.bidirectional_dynamic_rnn(lstm_cell, lstm_cell,
+        outputs2_raw, _ = tf.nn.bidirectional_dynamic_rnn(lstm_cells[1], lstm_cells[1],
             outputs1, seq_length, dtype=tf.float32, time_major=True,
             scope="bidirectional_lstm2")
         outputs2 = tf.concat(outputs2_raw, axis=2)
@@ -80,7 +82,7 @@ def attbilstm(text_seq_batch, name, num_vocab, embed_dim, lstm_dim,
             BoW_obj2.set_shape([None, embed_dim])
             BoW_rel.set_shape([None, embed_dim])
 
-    return (BoW_obj1, BoW_obj2, BoW_rel)
+    return (BoW_obj1, BoW_obj2, BoW_rel, probs_obj1, probs_obj2, probs_rel)
 
 def attbilstm_simple(text_seq_batch, name, num_vocab, embed_dim,
                      lstm_dim, apply_dropout, reuse=None):

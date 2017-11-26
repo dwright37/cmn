@@ -18,7 +18,7 @@ def refgoog_attbilstm_net(input_batch, bbox_batch, spatial_batch, expr_obj,
     D_vis = vis_feat.get_shape().as_list()[-1]
 
     # Extract representation using attention
-    lang_obj1, lang_obj2, lang_relation = lstm_net.attbilstm(
+    lang_obj1, lang_obj2, lang_relation, probs_obj1, probs_obj2, probs_rel  = lstm_net.attbilstm(
         expr_obj, "lstm", num_vocab=num_vocab, embed_dim=embed_dim,
         lstm_dim=lstm_dim, apply_dropout=lstm_dropout)
 
@@ -40,6 +40,30 @@ def refgoog_attbilstm_net(input_batch, bbox_batch, spatial_batch, expr_obj,
     tf.add_to_collection("s_pair", scores_rel)
 
     # marginal_scores has shape [N_batch, N_box, 1]
+    marginal_scores = tf.reduce_max(scores_rel, reduction_indices=2)
+    final_scores = tf.reshape(marginal_scores, to_T([N_batch, -1]))
+
+    return final_scores, probs_obj1, probs_obj2, probs_rel
+
+
+def refgoog_retrieval_baseline(vis_feat, spatial_batch, expr_obj,
+    num_vocab, embed_dim, lstm_dim):
+    
+    N_batch = tf.shape(expr_obj)[1]
+    N_box = tf.shape(spatial_batch)[0]
+
+    D_vis = vis_feat.get_shape().as_list()[-1]
+
+    lang_obj1, lang_obj2, lang_relation, probs_obj1, probs_obj2, probs_rel = lstm_net.attbilstm(
+        expr_obj, "lstm", num_vocab=num_vocab, embed_dim=embed_dim, lstm_dim=lstm_dim,
+        apply_dropout=False)
+
+    scores_obj1 = modules.localization_module_grid_score(vis_feat, spatial_batch, lang_obj1)
+    scores_obj2 = modules.localization_module_grid_score(vis_feat, spatial_batch, lang_obj2, reuse=True)
+    scores_rel = modules.relationship_module_spatial_only_grid_score(
+        spatial_batch, scores_obj1, spatial_batch, scores_obj2, lang_relation,
+        rescale_scores=True)
+
     marginal_scores = tf.reduce_max(scores_rel, reduction_indices=2)
     final_scores = tf.reshape(marginal_scores, to_T([N_batch, -1]))
 

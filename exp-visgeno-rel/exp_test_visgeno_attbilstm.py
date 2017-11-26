@@ -11,6 +11,8 @@ import skimage.transform
 from models import visgeno_attention_model, spatial_feat, fastrcnn_vgg_net
 from util.visgeno_rel_train.rel_data_reader import DataReader
 from util import loss, eval_tools, text_processing
+import util.io
+import ipdb
 
 ################################################################################
 # Parameters
@@ -29,9 +31,10 @@ im_mean = visgeno_attention_model.fastrcnn_vgg_net.channel_mean
 
 # Snapshot Params
 model_file = './downloaded_models/visgeno_attbilstm_strong_iter_360000.tfmodel'
+#model_file = './downloaded_models/visgeno_attbilstm_weak_iter_360000.tfmodel'
 
-result_file = './exp-visgeno-rel/results/visgeno_attbilstm_strong_iter_360000_tst.txt'
-
+result_file = './exp-visgeno-rel/results/visgeno_attbilstm_strong_iter_360000_tst_1.txt'
+result_json = './exp-visgeno-rel/results/visgeno_attbilstm_strong_iter_360000_tst_1.json'
 ################################################################################
 # Network
 ################################################################################
@@ -41,7 +44,7 @@ bbox_batch = tf.placeholder(tf.float32, [None, 5])
 spatial_batch = tf.placeholder(tf.float32, [None, 5])
 text_seq_batch = tf.placeholder(tf.int32, [T, None])
 
-scores = visgeno_attention_model.visgeno_attbilstm_net(im_batch, bbox_batch, spatial_batch,
+scores, probs_obj1, probs_obj2, probs_rel = visgeno_attention_model.visgeno_attbilstm_net(im_batch, bbox_batch, spatial_batch,
     text_seq_batch, num_vocab, embed_dim, lstm_dim, False, False)
 
 np.random.seed(3)
@@ -103,6 +106,28 @@ for n_iter in range(reader.num_batch):
     top_x_correct_count[N_box:] += N_batch
     total += N_batch
 
+    ipdb.set_trace()
+
+    # save json
+    if n_iter == 0:
+        eval_output_json = []
+    for n_question in range(N_batch):
+        result = {
+            "image_path": batch["im_path"],
+            "predicted_bounding_boxes": batch['bbox_orig'][prediction_box_ids[n_question,:]],
+            "refexp": batch["questions"][n_question],
+            "obj1_prob": probs_obj1[:,n_question,:],
+            "obj2_prob": probs_obj2[:,n_question,:],
+            "rel_prob": probs_rel[:,n_question,:],
+            "ground_truth": batch['bbox_orig'][labels[n_question,:]]
+        }
+        eval_output_json.append(result)
+    if n_iter == 0: # check if save passes..
+        util.io.save_json(eval_output_json, result_json)
+    if n_iter == reader.num_batch - 1:
+        util.io.save_json(eval_output_json, result_json)
+        print('evaluation output file saved to %s' % result_json)
+    
 
 with open(result_file, 'w') as f:
     for k in range(K):

@@ -23,14 +23,14 @@ embed_dim = 300
 lstm_dim = 1000
 
 # Data Params
-imdb_file = './exp-refgoog/data/imdb/imdb_val.npy'
+imdb_file = './exp-refgoog/data/imdb/imdb_multi_people.json'
 vocab_file = './word_embedding/vocabulary_72700.txt'
 im_mean = refgoog_attention_model.fastrcnn_vgg_net.channel_mean
 
 # Snapshot Params
 snapshot_file = './downloaded_models/refgoog_attbilstm_iter_150000.tfmodel'
 
-output_file = './exp-refgoog/results/refgoog_attbilstm_iter_150000_val.txt'
+output_file = './exp-refgoog/results/refgoog_attbilstm_iter_150000_multiobject_people.txt'
 
 ################################################################################
 # The model
@@ -43,7 +43,7 @@ bbox_batch = tf.placeholder(tf.float32, [None, 5])
 spatial_batch = tf.placeholder(tf.float32, [None, 5])
 
 # Outputs
-scores = refgoog_attention_model.refgoog_attbilstm_net(im_batch, bbox_batch,
+scores, probs_obj1, probs_obj2, probs_rel = refgoog_attention_model.refgoog_attbilstm_net(im_batch, bbox_batch,
     spatial_batch, text_seq_batch, num_vocab, embed_dim, lstm_dim,
     vgg_dropout=False, lstm_dropout=False)
 
@@ -78,14 +78,13 @@ for n_iter in range(reader.num_batch):
     spatial_val   = batch['spatial_batch']
 
     # Forward and Backward pass
-    scores_val = sess.run(scores,
+    scores_val, obj1_prob, obj2_prob, rel_prob = sess.run([scores, probs_obj1, probs_obj2, probs_rel],
         feed_dict={
             text_seq_batch  : text_seq_val,
             im_batch        : im_val,
             bbox_batch      : bbox_val,
             spatial_batch   : spatial_val
         })
-
     predicts = np.argmax(scores_val, axis=1)
 
     # save json
@@ -95,7 +94,10 @@ for n_iter in range(reader.num_batch):
         result = {
             "annotation_id": batch["coco_ann_ids"][n_sentence],
             "predicted_bounding_boxes": [list(batch["coco_bboxes"][predicts[n_sentence]])],
-            "refexp": batch["questions"][n_sentence]
+            "refexp": batch["questions"][n_sentence],
+            "obj1_prob": obj1_prob[:,n_sentence,:],
+            "obj2_prob": obj2_prob[:,n_sentence,:],
+            "rel_prob": rel_prob[:,n_sentence,:]
         }
         eval_output_json.append(result)
     if n_iter == 0: # check if save passes..
